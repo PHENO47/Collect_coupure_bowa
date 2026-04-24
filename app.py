@@ -263,11 +263,19 @@ if os.path.exists(fichier_data):
             ax.set_title("Classification par cause")
             plt.xticks(rotation=45, ha='right')
             st.pyplot(fig)
+        else:
+            st.info("Aucune donnée de cause disponible")
     
     with col2:
         zone_data = df_clean.groupby('zone')['duree_heures'].agg(['count', 'mean']).sort_values('count', ascending=False)
         if len(zone_data) > 0:
-            st.dataframe(zone_data.style.format({'mean': '{:.1f}'}).rename(columns={'count': 'Nb incidents', 'mean': 'Durée moyenne'}))
+            # Affichage sans utiliser .style.format() qui cause l'erreur
+            zone_data_display = zone_data.copy()
+            zone_data_display.columns = ['Nb incidents', 'Durée moyenne (h)']
+            zone_data_display['Durée moyenne (h)'] = zone_data_display['Durée moyenne (h)'].round(1)
+            st.dataframe(zone_data_display)
+        else:
+            st.info("Aucune donnée de zone disponible")
     
     st.markdown("---")
     
@@ -305,6 +313,8 @@ if os.path.exists(fichier_data):
             ax.pie(freq_causes.values, labels=freq_causes.index, autopct='%1.1f%%')
             ax.set_title("Répartition des causes")
             st.pyplot(fig)
+        else:
+            st.info("Aucune donnée de cause disponible")
     
     # Téléchargement
     st.download_button(
