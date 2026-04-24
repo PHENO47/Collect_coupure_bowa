@@ -16,33 +16,183 @@ st.set_page_config(
     layout="wide"
 )
 
-# ==================== LOGO ET EN-TÊTE ====================
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
+# ==================== BARRE LATÉRALE (STYLE IMAGE) ====================
+with st.sidebar:
+    # Logo / Titre
     st.markdown("""
-        <div style='text-align: center;'>
-            <h1 style='font-size: 4rem;'>💡</h1>
-            <h1 style='color: #FF6B35;'>COLLECTE COUPURE BOWA</h1>
-            <h3>Cartographie et analyse des coupures d'électricité</h3>
+        <div style='text-align: center; padding: 10px;'>
+            <h2 style='color: #FF6B35; margin-bottom: 0;'>⚡ BOWA</h2>
+            <p style='color: #666; font-size: 0.8rem;'>Collecte Coupure</p>
             <hr>
-            <p style='font-size: 1.1rem;'>
-            <strong>🎯 Mission :</strong> Collecter des données sur les coupures électriques pour 
-            identifier les zones critiques, comprendre les causes récurrentes,<br>
-            et proposer des solutions adaptées aux décideurs et aux fournisseurs d'énergie.
-            </p>
-            <p style='font-size: 0.9rem; color: #666;'>
-            Vos données contribuent à améliorer la stabilité du réseau électrique !
-            </p>
         </div>
     """, unsafe_allow_html=True)
+    
+    # Menu de navigation
+    st.markdown("### 📌 Menu")
+    menu = st.radio(
+        "",
+        ["📊 Tableau de bord", "📋 Données brutes", "📝 Nouveau signalement", "📈 Analyses", "⚙️ À propos"],
+        label_visibility="collapsed"
+    )
+    
+    st.markdown("---")
+    
+    # Barre de recherche (comme sur l'image)
+    st.markdown("### 🔍 Rechercher")
+    search = st.text_input("", placeholder="Rechercher un signalement...", label_visibility="collapsed")
+    
+    st.markdown("---")
+    
+    # Profil utilisateur (comme sur l'image)
+    st.markdown("""
+        <div style='background: #f0f2f6; padding: 12px; border-radius: 10px;'>
+            <p style='margin: 0; font-weight: bold;'>👤 Admin BOWA</p>
+            <p style='margin: 0; color: #666; font-size: 0.75rem;'>Superviseur</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Stats rapides dans la sidebar
+    fichier_data = "data/coupures.csv"
+    if os.path.exists(fichier_data):
+        df_temp = pd.read_csv(fichier_data)
+        st.markdown("---")
+        st.markdown("### 📊 Stats rapides")
+        st.metric("Total signalements", len(df_temp), delta=None)
+
+# ==================== CONTENU PRINCIPAL ====================
+
+# En-tête
+st.markdown("""
+    <div style='margin-bottom: 20px;'>
+        <h1 style='color: #FF6B35; margin-bottom: 0;'>Collecte Coupure BOWA</h1>
+        <p style='color: #666;'>Système de collecte et analyse des coupures d'électricité</p>
+    </div>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# ==================== SECTION COLLECTE ====================
-with st.expander("📝 Signaler une coupure d'électricité", expanded=True):
-    st.markdown("### Remplissez ce formulaire pour chaque incident")
+# ==================== PAGE : TABLEAU DE BORD ====================
+if menu == "📊 Tableau de bord":
     
-    with st.form("collecte_form"):
+    st.markdown("## 📊 Tableau de bord")
+    
+    fichier_data = "data/coupures.csv"
+    
+    if os.path.exists(fichier_data):
+        df = pd.read_csv(fichier_data)
+        
+        # Nettoyage
+        df["duree_heures"] = pd.to_numeric(df["duree_heures"], errors="coerce")
+        df["impact_numerique"] = pd.to_numeric(df["impact_numerique"], errors="coerce")
+        df_clean = df.dropna(subset=["duree_heures"])
+        
+        # KPI Cards
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("📊 Total incidents", len(df_clean))
+        with col2:
+            st.metric("⏱️ Durée moyenne", f"{df_clean['duree_heures'].mean():.1f} h")
+        with col3:
+            st.metric("⚠️ Cause principale", df_clean['cause'].mode().iloc[0] if len(df_clean) > 0 else "N/A")
+        with col4:
+            st.metric("📍 Zone la plus touchée", df_clean['zone'].mode().iloc[0] if len(df_clean) > 0 else "N/A")
+        
+        st.markdown("---")
+        
+        # Graphiques du tableau de bord
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 📈 Évolution des signalements")
+            if 'timestamp' in df_clean.columns:
+                df_clean['date'] = pd.to_datetime(df_clean['timestamp']).dt.date
+            signalements_par_jour = df_clean.groupby(df_clean['date']).size() if 'date' in df_clean.columns else pd.Series()
+            if len(signalements_par_jour) > 0:
+                fig, ax = plt.subplots(figsize=(8, 4))
+                signalements_par_jour.plot(kind='line', marker='o', ax=ax, color='#FF6B35')
+                ax.set_xlabel("Date")
+                ax.set_ylabel("Nombre de signalements")
+                ax.set_title("Signalements par jour")
+                st.pyplot(fig)
+            else:
+                st.info("Pas assez de données")
+        
+        with col2:
+            st.markdown("### 🎯 Répartition par zone")
+            zone_counts = df_clean['zone'].value_counts().head(5)
+            if len(zone_counts) > 0:
+                fig, ax = plt.subplots(figsize=(8, 4))
+                zone_counts.plot(kind='bar', ax=ax, color='skyblue')
+                ax.set_xlabel("Zone")
+                ax.set_ylabel("Nombre d'incidents")
+                plt.xticks(rotation=45, ha='right')
+                st.pyplot(fig)
+        
+        st.markdown("---")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### ⚡ Causes des coupures")
+            cause_counts = df_clean['cause'].value_counts()
+            if len(cause_counts) > 0:
+                fig, ax = plt.subplots(figsize=(8, 4))
+                cause_counts.plot(kind='pie', autopct='%1.1f%%', ax=ax, colors=['#FF6B35', '#FFB347', '#FFD700', '#87CEEB', '#98FB98'])
+                ax.set_ylabel("")
+                ax.set_title("Répartition des causes")
+                st.pyplot(fig)
+        
+        with col2:
+            st.markdown("### 📊 Types de zones touchées")
+            type_counts = df_clean['type_zone'].value_counts()
+            if len(type_counts) > 0:
+                fig, ax = plt.subplots(figsize=(8, 4))
+                type_counts.plot(kind='bar', ax=ax, color='#FF6B35')
+                ax.set_xlabel("Type de zone")
+                ax.set_ylabel("Nombre d'incidents")
+                st.pyplot(fig)
+        
+    else:
+        st.info("ℹ️ Aucune donnée disponible. Utilisez le menu '📝 Nouveau signalement' pour commencer.")
+
+# ==================== PAGE : DONNÉES BRUTES ====================
+elif menu == "📋 Données brutes":
+    
+    st.markdown("## 📋 Données brutes")
+    
+    fichier_data = "data/coupures.csv"
+    
+    if os.path.exists(fichier_data):
+        df = pd.read_csv(fichier_data)
+        
+        # Filtre de recherche
+        if search:
+            mask = df['ville'].str.contains(search, case=False, na=False) | df['commentaire'].str.contains(search, case=False, na=False)
+            df_filtered = df[mask]
+            st.info(f"🔍 Résultats pour : '{search}' - {len(df_filtered)} signalement(s) trouvé(s)")
+            st.dataframe(df_filtered, use_container_width=True)
+        else:
+            st.dataframe(df, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # Export
+        st.download_button(
+            label="📥 Télécharger toutes les données (CSV)",
+            data=df.to_csv(index=False),
+            file_name=f"signalements_coupures_{datetime.now().strftime('%Y%m%d')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    else:
+        st.info("Aucune donnée disponible")
+
+# ==================== PAGE : NOUVEAU SIGNALEMENT ====================
+elif menu == "📝 Nouveau signalement":
+    
+    st.markdown("## 📝 Nouveau signalement de coupure")
+    
+    with st.form("signalement_form"):
         col1, col2 = st.columns(2)
         
         with col1:
@@ -64,27 +214,19 @@ with st.expander("📝 Signaler une coupure d'électricité", expanded=True):
                 "Première fois", "Rare (1-2x/mois)", "Occasionnelle (1x/semaine)", 
                 "Fréquente (2-3x/semaine)", "Quotidienne"
             ])
-            impact = st.select_slider("Impact (personnes touchées estimées)", 
+            impact = st.select_slider("Personnes touchées estimées", 
                 options=["Moins de 50", "50-200", "200-500", "500-2000", "Plus de 2000"])
-            commentaire = st.text_area("Description / Observations supplémentaires", 
-                placeholder="Ex: coupure pendant la nuit, pas de préavis, transformateur endommagé...")
+            commentaire = st.text_area("Observations", placeholder="Informations supplémentaires...")
         
-        submitted = st.form_submit_button("✅ Enregistrer le signalement")
+        submitted = st.form_submit_button("✅ Enregistrer le signalement", use_container_width=True)
         
-        # Mapping pour impact_numerique
         impact_map = {
-            "Moins de 50": 25,
-            "50-200": 125,
-            "200-500": 350,
-            "500-2000": 1250,
-            "Plus de 2000": 3000
+            "Moins de 50": 25, "50-200": 125, "200-500": 350,
+            "500-2000": 1250, "Plus de 2000": 3000
         }
-        
         frequence_map = {
-            "Première fois": 0.1,
-            "Rare (1-2x/mois)": 1.5,
-            "Occasionnelle (1x/semaine)": 4,
-            "Fréquente (2-3x/semaine)": 10,
+            "Première fois": 0.1, "Rare (1-2x/mois)": 1.5,
+            "Occasionnelle (1x/semaine)": 4, "Fréquente (2-3x/semaine)": 10,
             "Quotidienne": 30
         }
         
@@ -105,7 +247,6 @@ with st.expander("📝 Signaler une coupure d'électricité", expanded=True):
                     "frequence": frequence,
                     "impact": impact,
                     "commentaire": commentaire,
-                    "duree_minutes": duree_heures * 60,
                     "impact_numerique": impact_map[impact],
                     "frequence_numerique": frequence_map[frequence]
                 }])
@@ -117,215 +258,145 @@ with st.expander("📝 Signaler une coupure d'électricité", expanded=True):
                     df_combine = nouvelle_ligne
                 
                 df_combine.to_csv(fichier_data, index=False)
-                st.success(f"✅ Signalement enregistré ! Total : {len(df_combine)} incidents signalés")
+                st.success(f"✅ Signalement enregistré ! Total : {len(df_combine)} incidents")
                 st.balloons()
+                st.audio("https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3", format="audio/mp3", autoplay=True)
 
-st.markdown("---")
-
-# ==================== SECTION ANALYSE ====================
-st.header("📊 Analyse des données de coupures électriques")
-st.markdown("*Lié aux chapitres de l'EC2 (Régression, Classification, ACP)*")
-
-fichier_data = "data/coupures.csv"
-
-if os.path.exists(fichier_data):
-    df = pd.read_csv(fichier_data)
+# ==================== PAGE : ANALYSES ====================
+elif menu == "📈 Analyses":
     
-    # Forcer les types numériques
-    df["duree_heures"] = pd.to_numeric(df["duree_heures"], errors="coerce")
-    df["impact_numerique"] = pd.to_numeric(df["impact_numerique"], errors="coerce")
-    df["frequence_numerique"] = pd.to_numeric(df["frequence_numerique"], errors="coerce")
+    st.markdown("## 📈 Analyses approfondies")
     
-    # Supprimer les lignes avec des valeurs manquantes critiques
-    df_clean = df.dropna(subset=["duree_heures", "impact_numerique"])
+    fichier_data = "data/coupures.csv"
     
-    # Métriques globales
-    st.subheader("📈 Indicateurs clés")
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("📍 Incidents signalés", len(df_clean))
-    with col2:
-        st.metric("⏱️ Durée moyenne", f"{df_clean['duree_heures'].mean():.1f} h")
-    with col3:
-        st.metric("📊 Durée max", f"{df_clean['duree_heures'].max():.1f} h")
-    with col4:
-        duree_mediane = df_clean['duree_heures'].median()
-        st.metric("📈 Durée médiane", f"{duree_mediane:.1f} h")
-    
-    st.markdown("---")
-    
-    # ========== RÉGRESSION LINÉAIRE SIMPLE ==========
-    st.subheader("📐 Chapitre 1 - Régression linéaire simple")
-    st.markdown("**Relation entre durée des coupures et impact (personnes touchées)**")
-    
-    X = df_clean['duree_heures'].values.reshape(-1, 1)
-    y = df_clean['impact_numerique'].values
-    
-    # Nettoyer les NaN
-    mask = ~(np.isnan(X.flatten()) | np.isnan(y))
-    X_clean = X[mask].reshape(-1, 1)
-    y_clean = y[mask]
-    
-    if len(X_clean) > 1:
-        reg = LinearRegression()
-        reg.fit(X_clean, y_clean)
-        y_pred = reg.predict(X_clean)
+    if os.path.exists(fichier_data):
+        df = pd.read_csv(fichier_data)
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Coefficient (pente)", f"{reg.coef_[0]:.2f}")
-            st.metric("Ordonnée à l'origine", f"{reg.intercept_:.2f}")
-            r2 = reg.score(X_clean, y_clean)
-            st.metric("R² (qualité du modèle)", f"{r2:.3f}")
+        df["duree_heures"] = pd.to_numeric(df["duree_heures"], errors="coerce")
+        df["impact_numerique"] = pd.to_numeric(df["impact_numerique"], errors="coerce")
+        df["frequence_numerique"] = pd.to_numeric(df["frequence_numerique"], errors="coerce")
+        df_clean = df.dropna(subset=["duree_heures", "impact_numerique"])
         
-        with col2:
-            fig, ax = plt.subplots(figsize=(8, 5))
-            ax.scatter(X_clean, y_clean, alpha=0.6, label="Données réelles")
-            ax.plot(X_clean, y_pred, 'r-', linewidth=2, label="Régression linéaire")
-            ax.set_xlabel("Durée de la coupure (heures)")
-            ax.set_ylabel("Impact (nombre de personnes touchées)")
-            ax.set_title("Régression linéaire : Durée → Impact")
-            ax.legend()
-            st.pyplot(fig)
-    else:
-        st.info("Ajoutez plus de données pour voir la régression linéaire (minimum 2 points)")
-    
-    st.markdown("---")
-    
-    # ========== RÉGRESSION MULTIPLE ==========
-    st.subheader("📊 Chapitre 2 - Régression linéaire multiple")
-    st.markdown("**Prédiction de l'impact selon (durée + fréquence)**")
-    
-    if len(df_clean) > 3 and 'frequence_numerique' in df_clean.columns:
-        df_multi = df_clean.dropna(subset=['frequence_numerique'])
-        X_multi = df_multi[['duree_heures', 'frequence_numerique']].values
-        y_multi = df_multi['impact_numerique'].values
+        tab1, tab2, tab3 = st.tabs(["📐 Régression", "🔄 ACP", "📊 Statistiques"])
         
-        if len(X_multi) > 2:
-            reg_multi = LinearRegression()
-            reg_multi.fit(X_multi, y_multi)
+        with tab1:
+            st.markdown("### Relation durée / impact (Régression linéaire)")
+            
+            X = df_clean['duree_heures'].values.reshape(-1, 1)
+            y = df_clean['impact_numerique'].values
+            mask = ~(np.isnan(X.flatten()) | np.isnan(y))
+            X_clean = X[mask].reshape(-1, 1)
+            y_clean = y[mask]
+            
+            if len(X_clean) > 1:
+                reg = LinearRegression()
+                reg.fit(X_clean, y_clean)
+                y_pred = reg.predict(X_clean)
+                
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.scatter(X_clean, y_clean, alpha=0.6, label="Données réelles", color='#FF6B35')
+                ax.plot(X_clean, y_pred, 'b-', linewidth=2, label="Tendance linéaire")
+                ax.set_xlabel("Durée de la coupure (heures)")
+                ax.set_ylabel("Nombre de personnes touchées")
+                ax.set_title("Durée vs Impact")
+                ax.legend()
+                st.pyplot(fig)
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Coefficient directeur", f"{reg.coef_[0]:.2f}")
+                with col2:
+                    st.metric("Ordonnée à l'origine", f"{reg.intercept_:.2f}")
+                with col3:
+                    st.metric("R² (qualité du modèle)", f"{reg.score(X_clean, y_clean):.3f}")
+                
+                st.caption("📌 Interprétation : Chaque heure supplémentaire de coupure touche environ {:.0f} personnes de plus".format(reg.coef_[0]))
+        
+        with tab2:
+            st.markdown("### Projection multidimensionnelle (ACP)")
+            
+            features_acp = ['duree_heures', 'impact_numerique']
+            if 'frequence_numerique' in df_clean.columns:
+                features_acp.append('frequence_numerique')
+            
+            df_acp = df_clean[features_acp].dropna()
+            
+            if len(df_acp) > 2:
+                scaler = StandardScaler()
+                df_scaled = scaler.fit_transform(df_acp)
+                pca = PCA(n_components=2)
+                pca_result = pca.fit_transform(df_scaled)
+                
+                fig, ax = plt.subplots(figsize=(10, 6))
+                scatter = ax.scatter(pca_result[:, 0], pca_result[:, 1], 
+                                    c=df_acp['duree_heures'], 
+                                    cmap='YlOrRd', alpha=0.7, s=80)
+                ax.set_xlabel(f"Composante 1 ({pca.explained_variance_ratio_[0]:.1%})")
+                ax.set_ylabel(f"Composante 2 ({pca.explained_variance_ratio_[1]:.1%})")
+                ax.set_title("Visualisation ACP des incidents")
+                plt.colorbar(scatter, label="Durée (heures)")
+                st.pyplot(fig)
+                
+                st.caption(f"📊 Les 2 composantes expliquent {pca.explained_variance_ratio_.sum():.1%} de la variance totale")
+        
+        with tab3:
+            st.markdown("### Statistiques descriptives")
             
             col1, col2 = st.columns(2)
+            
             with col1:
-                st.metric("Coef durée", f"{reg_multi.coef_[0]:.2f}")
-                st.metric("Coef fréquence", f"{reg_multi.coef_[1]:.2f}")
+                st.markdown("**Durée des coupures**")
+                stats_duree = pd.DataFrame({
+                    'Statistique': ['Moyenne', 'Médiane', 'Écart-type', 'Minimum', 'Maximum', 'Q1 (25%)', 'Q3 (75%)'],
+                    'Valeur (heures)': [
+                        f"{df_clean['duree_heures'].mean():.1f}",
+                        f"{df_clean['duree_heures'].median():.1f}",
+                        f"{df_clean['duree_heures'].std():.1f}",
+                        f"{df_clean['duree_heures'].min():.1f}",
+                        f"{df_clean['duree_heures'].max():.1f}",
+                        f"{df_clean['duree_heures'].quantile(0.25):.1f}",
+                        f"{df_clean['duree_heures'].quantile(0.75):.1f}"
+                    ]
+                })
+                st.dataframe(stats_duree, use_container_width=True)
             
             with col2:
-                st.metric("R² multiple", f"{reg_multi.score(X_multi, y_multi):.3f}")
+                st.markdown("**Top 3 des zones les plus touchées**")
+                top_zones = df_clean['zone'].value_counts().head(3).reset_index()
+                top_zones.columns = ['Zone', 'Nombre d\'incidents']
+                st.dataframe(top_zones, use_container_width=True)
+        
     else:
-        st.info("Ajoutez plus de données avec fréquences renseignées")
-    
-    st.markdown("---")
-    
-    # ========== ACP ==========
-    st.subheader("🔄 Chapitre 3 - ACP (Analyse en Composantes Principales)")
-    
-    if len(df_clean) > 2:
-        features_acp = ['duree_heures', 'impact_numerique']
-        if 'frequence_numerique' in df_clean.columns:
-            features_acp.append('frequence_numerique')
-        
-        df_acp = df_clean[features_acp].dropna()
-        
-        if len(df_acp) > 2:
-            scaler = StandardScaler()
-            df_scaled = scaler.fit_transform(df_acp)
-            
-            pca = PCA(n_components=2)
-            pca_result = pca.fit_transform(df_scaled)
-            
-            fig, ax = plt.subplots(figsize=(10, 6))
-            scatter = ax.scatter(pca_result[:, 0], pca_result[:, 1], 
-                                c=df_acp['duree_heures'], 
-                                cmap='YlOrRd', alpha=0.7, s=80)
-            ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]:.1%} variance)")
-            ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]:.1%} variance)")
-            ax.set_title("ACP : Projection des incidents de coupure")
-            plt.colorbar(scatter, label="Durée (heures)")
-            st.pyplot(fig)
-            
-            st.caption(f"Les 2 premières composantes expliquent {pca.explained_variance_ratio_.sum():.1%} de la variance")
-    
-    st.markdown("---")
-    
-    # ========== CLASSIFICATION ==========
-    st.subheader("🏷️ Chapitres 4 & 5 - Classification (supervisée et non-supervisée)")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        cause_counts = df_clean['cause'].value_counts()
-        if len(cause_counts) > 0:
-            fig, ax = plt.subplots()
-            cause_counts.plot(kind='bar', ax=ax, color='skyblue')
-            ax.set_xlabel("Cause")
-            ax.set_ylabel("Nombre d'incidents")
-            ax.set_title("Classification par cause")
-            plt.xticks(rotation=45, ha='right')
-            st.pyplot(fig)
-        else:
-            st.info("Aucune donnée de cause disponible")
-    
-    with col2:
-        zone_data = df_clean.groupby('zone')['duree_heures'].agg(['count', 'mean']).sort_values('count', ascending=False)
-        if len(zone_data) > 0:
-            # Affichage sans utiliser .style.format() qui cause l'erreur
-            zone_data_display = zone_data.copy()
-            zone_data_display.columns = ['Nb incidents', 'Durée moyenne (h)']
-            zone_data_display['Durée moyenne (h)'] = zone_data_display['Durée moyenne (h)'].round(1)
-            st.dataframe(zone_data_display)
-        else:
-            st.info("Aucune donnée de zone disponible")
-    
-    st.markdown("---")
-    
-    # ========== STATISTIQUES DESCRIPTIVES ==========
-    st.subheader("📋 Synthèse descriptive complète")
-    
-    tab1, tab2 = st.tabs(["Statistiques numériques", "Fréquences des causes"])
-    
-    with tab1:
-        stats_df = pd.DataFrame({
-            'Statistique': ['Moyenne', 'Médiane', 'Écart-type', 'Minimum', 'Maximum', 'Q1 (25%)', 'Q3 (75%)'],
-            'Durée (heures)': [
-                df_clean['duree_heures'].mean(),
-                df_clean['duree_heures'].median(),
-                df_clean['duree_heures'].std(),
-                df_clean['duree_heures'].min(),
-                df_clean['duree_heures'].max(),
-                df_clean['duree_heures'].quantile(0.25),
-                df_clean['duree_heures'].quantile(0.75)
-            ]
-        })
-        st.dataframe(stats_df.style.format({'Durée (heures)': '{:.1f}'}))
-    
-    with tab2:
-        freq_causes = df_clean['cause'].value_counts()
-        if len(freq_causes) > 0:
-            freq_df = pd.DataFrame({
-                'Cause': freq_causes.index,
-                'Nombre': freq_causes.values,
-                'Pourcentage (%)': (freq_causes.values / len(df_clean) * 100).round(1)
-            })
-            st.dataframe(freq_df)
-            
-            fig, ax = plt.subplots()
-            ax.pie(freq_causes.values, labels=freq_causes.index, autopct='%1.1f%%')
-            ax.set_title("Répartition des causes")
-            st.pyplot(fig)
-        else:
-            st.info("Aucune donnée de cause disponible")
-    
-    # Téléchargement
-    st.download_button(
-        label="📥 Télécharger toutes les données (CSV)",
-        data=df_clean.to_csv(index=False),
-        file_name=f"donnees_coupures_{datetime.now().strftime('%Y%m%d')}.csv",
-        mime="text/csv"
-    )
-    
-else:
-    st.warning("⚠️ Aucune donnée collectée pour le moment. Utilisez le formulaire ci-dessus pour signaler votre premier incident !")
+        st.info("Aucune donnée disponible pour les analyses")
 
+# ==================== PAGE : À PROPOS ====================
+elif menu == "⚙️ À propos":
+    
+    st.markdown("## ⚙️ À propos")
+    
+    st.markdown("""
+    ### 📱 Collecte Coupure BOWA
+    
+    **Version** : 1.0
+    
+    **Objectif** : Collecter et analyser les données sur les coupures d'électricité
+    
+    ### 🎯 Fonctionnalités
+    
+    - Collecte de signalements de coupures
+    - Tableau de bord interactif
+    - Analyses statistiques (régression, ACP)
+    - Export des données
+    
+    ### 📧 Contact
+    
+    Pour tout signalement ou suggestion, utilisez le formulaire de l'application.
+    
+    ---
+    
+    **INF232 EC2 - Analyse de données**
+    """)
+
+# ==================== FOOTER ====================
 st.markdown("---")
-st.caption("INF232 EC2 - Analyse de données | Collecte Coupure BOWA v1.0 | Données anonymisées")
+st.caption("© 2024 Collecte Coupure BOWA | Analyse des coupures d'électricité")
