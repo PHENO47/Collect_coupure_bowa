@@ -21,7 +21,7 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.markdown("""
         <div style='text-align: center;'>
-            <h1 style='font-size: 4rem;'>⚡🔌⚠️</h1>
+            <h1 style='font-size: 4rem;'>💡</h1>
             <h1 style='color: #FF6B35;'>COLLECTE COUPURE BOWA</h1>
             <h3>Cartographie et analyse des coupures d'électricité</h3>
             <hr>
