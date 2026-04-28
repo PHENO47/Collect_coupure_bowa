@@ -388,8 +388,8 @@ elif menu == "⚙️ À propos":
     - Analyses statistiques (régression, ACP)
     - Export des données
     
-    ### 📧 Contact
-    
+    ### 📧 Contact: samelphenomene@gmail.com
+    ### 📞 +237 612120000
     Pour tout signalement ou suggestion, utilisez le formulaire de l'application.
     
     ---
