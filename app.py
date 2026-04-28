@@ -38,10 +38,10 @@ with st.sidebar:
     st.markdown("---")
     
     # Barre de recherche (comme sur l'image)
-    st.markdown("### 🔍 Rechercher")
-    search = st.text_input("", placeholder="Rechercher un signalement...", label_visibility="collapsed")
+    #st.markdown("### 🔍 Rechercher")
+    #search = st.text_input("", placeholder="Rechercher un signalement...", label_visibility="collapsed")
     
-    st.markdown("---")
+    #st.markdown("---")
     
     # Profil utilisateur (comme sur l'image)
     st.markdown("""
@@ -166,15 +166,15 @@ elif menu == "📋 Données brutes":
         df = pd.read_csv(fichier_data)
         
         # Filtre de recherche
-        if search:
-            mask = df['ville'].str.contains(search, case=False, na=False) | df['commentaire'].str.contains(search, case=False, na=False)
-            df_filtered = df[mask]
-            st.info(f"🔍 Résultats pour : '{search}' - {len(df_filtered)} signalement(s) trouvé(s)")
-            st.dataframe(df_filtered, use_container_width=True)
-        else:
-            st.dataframe(df, use_container_width=True)
+        #if search:
+            #mask = df['ville'].str.contains(search, case=False, na=False) | df['commentaire'].str.contains(search, case=False, na=False)
+            #df_filtered = df[mask]
+            #st.info(f"🔍 Résultats pour : '{search}' - {len(df_filtered)} signalement(s) trouvé(s)")
+            #st.dataframe(df_filtered, use_container_width=True)
+        #else:
+            #st.dataframe(df, use_container_width=True)
         
-        st.markdown("---")
+        #st.markdown("---")
         
         # Export
         st.download_button(
@@ -394,9 +394,9 @@ elif menu == "⚙️ À propos":
     
     ---
     
-    **INF232 EC2 - Analyse de données**
+    **PHENO47 - Analyse de données**
     """)
 
 # ==================== FOOTER ====================
 st.markdown("---")
-st.caption("© 2024 Collecte Coupure BOWA | Analyse des coupures d'électricité")
+st.caption("© 2026 Collecte Coupure BOWA | Analyse des coupures d'électricité")
