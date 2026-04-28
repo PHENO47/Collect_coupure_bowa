@@ -31,7 +31,7 @@ with st.sidebar:
     st.markdown("### 📌 Menu")
     menu = st.radio(
         "",
-        ["📊 Tableau de bord", "📋 Données brutes", "📝 Nouveau signalement", "📈 Analyses", "⚙️ À propos"],
+        [ "📝 Nouveau signalement", "📋 Données brutes", "📊 Tableau de bord", "📈 Analyses", "⚙️ À propos"],
         label_visibility="collapsed"
     )
     
