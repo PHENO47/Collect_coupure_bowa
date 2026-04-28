@@ -46,8 +46,8 @@ with st.sidebar:
     # Profil utilisateur (comme sur l'image)
     st.markdown("""
         <div style='background: #f0f2f6; padding: 12px; border-radius: 10px;'>
-            <p style='margin: 0; font-weight: bold;'>👤 Admin BOWA</p>
-            <p style='margin: 0; color: #666; font-size: 0.75rem;'>Superviseur</p>
+            <p style='margin: 0; font-weight: bold;'>👤 Gov BOWA</p>
+            <p style='margin: 0; color: #666; font-size: 0.75rem;'>Supervision</p>
         </div>
     """, unsafe_allow_html=True)
     
